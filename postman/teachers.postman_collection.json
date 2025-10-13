@@ -1,0 +1,340 @@
+{
+  "info": {
+    "name": "Gestao-De-Professores - Teachers",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "a8f8c3ee-6e2a-4b8e-9f1a-6d2db3b0c0c2",
+    "description": "Endpoints for TeacherController and TeacherManagementController"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "TeacherController",
+      "item": [
+        {
+          "name": "Listar todos os professores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar professor por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers",
+                ":id"
+              ],
+              "variable": [
+                { "key": "id", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar professor por matrícula (employeeId)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers/employee/:employeeId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers",
+                "employee",
+                ":employeeId"
+              ],
+              "variable": [
+                { "key": "employeeId", "value": "TCH-0001" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Criar professor",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fulano de Tal\",\n  \"employeeId\": \"TCH-0001\",\n  \"qualification\": \"Mestre em Matemática\",\n  \"contact\": \"fulano@escola.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Atualizar professor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fulano Atualizado\",\n  \"employeeId\": \"TCH-0001\",\n  \"qualification\": \"Doutor em Matemática\",\n  \"contact\": \"fulano@escola.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers",
+                ":id"
+              ],
+              "variable": [
+                { "key": "id", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Excluir professor",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers",
+                ":id"
+              ],
+              "variable": [
+                { "key": "id", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar por disciplina",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers/subject/:subject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers",
+                "subject",
+                ":subject"
+              ],
+              "variable": [
+                { "key": "subject", "value": "Matematica" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar por status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers/status/:status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers",
+                "status",
+                ":status"
+              ],
+              "variable": [
+                { "key": "status", "value": "ACTIVE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar por período de contratação",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teachers/hired?startDate={{startDate}}&endDate={{endDate}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "teachers",
+                "hired"
+              ],
+              "query": [
+                { "key": "startDate", "value": "2025-01-01" },
+                { "key": "endDate", "value": "2025-12-31" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TeacherManagementController",
+      "item": [
+        {
+          "name": "Listar professores (gestão)",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/teachers", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","teachers"] } }
+        },
+        {
+          "name": "Buscar professor por ID (gestão)",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/teachers/:id", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","teachers",":id"], "variable": [{"key":"id","value":"1"}] } }
+        },
+        {
+          "name": "Criar professor (gestão)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Fulano de Tal\",\n  \"employeeId\": \"TCH-0002\",\n  \"qualification\": \"Licenciatura em História\",\n  \"contact\": \"fulano2@escola.com\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/teachers", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","teachers"] }
+          }
+        },
+        {
+          "name": "Atualizar professor (gestão)",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Fulano Atualizado\",\n  \"employeeId\": \"TCH-0002\",\n  \"qualification\": \"Mestrado em História\",\n  \"contact\": \"fulano2@escola.com\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/teachers/:id", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","teachers",":id"], "variable": [{"key":"id","value":"2"}] }
+          }
+        },
+        {
+          "name": "Excluir professor (gestão)",
+          "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/teachers/:id", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","teachers",":id"], "variable": [{"key":"id","value":"2"}] } }
+        },
+        {
+          "name": "Atribuir professor à turma",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/teacher-management/assignments?teacherId=1&subjectId=10&classGroupId=100&startDate=2025-02-01&endDate=2025-06-30&workloadHours=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","teacher-management","assignments"],
+              "query": [
+                {"key":"teacherId","value":"1"},
+                {"key":"subjectId","value":"10"},
+                {"key":"classGroupId","value":"100"},
+                {"key":"startDate","value":"2025-02-01"},
+                {"key":"endDate","value":"2025-06-30"},
+                {"key":"workloadHours","value":"20"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar atribuições por professor",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/assignments/teacher/:teacherId", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","assignments","teacher",":teacherId"], "variable": [{"key":"teacherId","value":"1"}] } }
+        },
+        {
+          "name": "Listar atribuições por turma",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/assignments/class/:classGroupId", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","assignments","class",":classGroupId"], "variable": [{"key":"classGroupId","value":"100"}] } }
+        },
+        {
+          "name": "Horários do professor",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/schedules/teacher/:teacherId?academicYear=2025", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","schedules","teacher",":teacherId"], "query": [{"key":"academicYear","value":"2025"}], "variable": [{"key":"teacherId","value":"1"}] } }
+        },
+        {
+          "name": "Horários da turma",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/schedules/class/:classGroupId", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","schedules","class",":classGroupId"], "variable": [{"key":"classGroupId","value":"100"}] } }
+        },
+        {
+          "name": "Horário semanal do professor",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/schedules/weekly/teacher/:teacherId?academicYear=2025", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","schedules","weekly","teacher",":teacherId"], "query": [{"key":"academicYear","value":"2025"}], "variable": [{"key":"teacherId","value":"1"}] } }
+        },
+        {
+          "name": "Gerar relatório de desempenho",
+          "request": { "method": "POST", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/performance-reports?teacherId=1&startDate=2025-03-01&endDate=2025-06-30", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","performance-reports"], "query": [{"key":"teacherId","value":"1"},{"key":"startDate","value":"2025-03-01"},{"key":"endDate","value":"2025-06-30"}] } }
+        },
+        {
+          "name": "Listar relatórios por professor",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/performance-reports/teacher/:teacherId", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","performance-reports","teacher",":teacherId"], "variable": [{"key":"teacherId","value":"1"}] } }
+        },
+        {
+          "name": "Listar relatórios por período",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/performance-reports/period?startDate=2025-03-01&endDate=2025-06-30", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","performance-reports","period"], "query": [{"key":"startDate","value":"2025-03-01"},{"key":"endDate","value":"2025-06-30"}] } }
+        },
+        {
+          "name": "Enviar notificação de atribuição",
+          "request": { "method": "POST", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/notifications/assignment/:assignmentId", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","notifications","assignment",":assignmentId"], "variable": [{"key":"assignmentId","value":"500"}] } }
+        },
+        {
+          "name": "Listar notificações pendentes",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/notifications/pending", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","notifications","pending"] } }
+        },
+        {
+          "name": "Logs de auditoria",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/audit-logs?action=CREATE&entityId=1&startDate=2025-01-01&endDate=2025-12-31", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","audit-logs"], "query": [{"key":"action","value":"CREATE"},{"key":"entityId","value":"1"},{"key":"startDate","value":"2025-01-01"},{"key":"endDate","value":"2025-12-31"}] } }
+        },
+        {
+          "name": "Dashboard - Visão geral",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/dashboard/overview", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","dashboard","overview"] } }
+        },
+        {
+          "name": "Dashboard - Resumo de desempenho",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/dashboard/performance-summary", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","dashboard","performance-summary"] } }
+        },
+        {
+          "name": "Health do serviço de gestão",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/teacher-management/health", "host": ["{{baseUrl}}"], "path": ["api","v1","teacher-management","health"] } }
+        }
+      ]
+    }
+  ]
+}
+
+

@@ -37,7 +37,7 @@ public class Teacher extends BaseEntity {
     @Column(name = "qualification", length = 200)
     private String qualification;
     
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "teacher_subjects", joinColumns = @JoinColumn(name = "teacher_id"))
     @Column(name = "subject")
     private List<String> subjects;
