@@ -1,6 +1,8 @@
 package com.distrischool.template.dto;
 
 import com.distrischool.template.entity.Teacher;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,8 +15,13 @@ import java.util.List;
 public class TeacherDTO {
     
     private Long id;
+    
+    @NotBlank(message = "Nome é obrigatório")
     private String name;
+    
+    @NotBlank(message = "Matrícula é obrigatória")
     private String employeeId;
+    
     private LocalDate birthDate;
     private String email;
     private String phone;

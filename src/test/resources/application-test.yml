@@ -3,14 +3,55 @@ spring:
   application:
     name: microservice-template-test
   
-  kafka:
-    bootstrap-servers: ${spring.embedded.kafka.brokers}
+  # H2 Database para testes de integração
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
   
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+    defer-datasource-initialization: false
+  
+  # Flyway desabilitado para testes (usa Hibernate DDL)
+  flyway:
+    enabled: false
+  
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers:localhost:9092}
+  
+  # Desabilitar Redis para testes (não necessário)
+  data:
+    redis:
+      repositories:
+        enabled: false
+  
+  # Desabilitar completamente OAuth2 Resource Server para testes
   autoconfigure:
     exclude:
       - org.springframework.cloud.netflix.eureka.EurekaClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+
+# Desabilitar segurança para testes
+security:
+  disable: true
+
+auth0:
+  audience: test-audience
+  domain: ""
 
 logging:
   level:
     com.distrischool: DEBUG
+    org.springframework.security: WARN
+    org.springframework.boot.autoconfigure: WARN
+    org.springframework.security.oauth2: WARN
 

@@ -67,6 +67,24 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       acks: all
       retries: 3
+
+  # Segurança - OAuth2 Resource Server (Auth0)
+  # O issuer-uri será construído automaticamente pelo SecurityConfig a partir de AUTH0_DOMAIN ou AUTH0_ISSUER_URI
+  # AUTH0_DOMAIN deve ser algo como: dev-lthr3fyfn4x47q1g.us.auth0.com
+  # AUTH0_ISSUER_URI deve ser algo como: https://dev-lthr3fyfn4x47q1g.us.auth0.com/
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${AUTH0_ISSUER_URI:https://${AUTH0_DOMAIN:your-tenant.auth0.com}/}
+
+  # Configuração de CORS
+  web:
+    cors:
+      allowed-origins: ${SPRING_WEB_CORS_ALLOWED_ORIGINS:http://192.168.1.7:8080,http://192.168.1.7:3000,http://192.168.1.7:5173,http://localhost:8080,http://localhost:3000,http://localhost:5173}
+      allowed-methods: ${SPRING_WEB_CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS,PATCH}
+      allowed-headers: ${SPRING_WEB_CORS_ALLOWED_HEADERS:*}
+      allow-credentials: ${SPRING_WEB_CORS_ALLOW_CREDENTIALS:true}
     
   # Configuração do Jackson
   jackson:
@@ -90,6 +108,10 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
   shutdown: graceful
+
+# Auth0 - configuração adicional
+auth0:
+  audience: ${AUTH0_AUDIENCE:https://distrischool.api}
 
 # Configurações do Actuator
 management:
@@ -145,6 +167,8 @@ logging:
 microservice:
   name: ${spring.application.name}
   version: 1.0.0
+  auth:
+    url: ${MICROSERVICE_AUTH_URL:http://microservice-auth-dev:8080}
   kafka:
     topics:
       # Defina seus tópicos aqui conforme os requisitos do DistriSchool

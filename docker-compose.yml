@@ -23,7 +23,7 @@ services:
       POSTGRES_PASSWORD: distrischool123
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
-      - "5432:5432"
+      - "5439:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
@@ -126,6 +126,9 @@ services:
       SERVER_PORT: 8080
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SPRING_PROFILES_ACTIVE: dev
+      SECURITY_DISABLE: "false"
+      AUTH0_DOMAIN: dev-lthr3fyfn4x47q1g.us.auth0.com
+      AUTH0_AUDIENCE: https://api.distrischool.com
       SPRING_DEVTOOLS_RESTART_ENABLED: "true"
       SPRING_DEVTOOLS_LIVERELOAD_ENABLED: "true"
       SPRING_DEVTOOLS_RESTART_POLL_INTERVAL: "1000"
@@ -154,6 +157,27 @@ services:
       - distrischool-network
     # Remove o healthcheck para facilitar o desenvolvimento
     # O Spring Boot DevTools pode reiniciar frequentemente
+
+  # Service para executar testes de integração
+  integration-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    container_name: integration-tests
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+      MAVEN_OPTS: "-Xmx1024m"
+    volumes:
+      - ./src:/app/src:ro
+      - ./pom.xml:/app/pom.xml:ro
+      - ./target:/app/target
+      - maven-cache:/root/.m2
+    networks:
+      - distrischool-network
+    command: ["test", "-Dspring.profiles.active=test", "-Dtest=**/*IntegrationTest"]
+    profiles:
+      - test
 
 networks:
   distrischool-network:

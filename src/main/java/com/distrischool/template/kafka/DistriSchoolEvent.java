@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -34,7 +35,8 @@ public class DistriSchoolEvent {
         event.setSource(source);
         event.setVersion("1.0");
         event.setTimestamp(LocalDateTime.now());
-        event.setData(data);
+        // Create a mutable copy to avoid UnsupportedOperationException during serialization
+        event.setData(data != null ? new HashMap<>(data) : new HashMap<>());
         return event;
     }
 

@@ -40,7 +40,27 @@ EXPOSE 8080 5005 35729
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
-# Stage 4: Produção otimizada
+# Stage 4: Testes de Integração
+FROM maven:3.9-eclipse-temurin-17-alpine AS test
+
+WORKDIR /app
+
+# Copia dependências do cache
+COPY --from=deps /root/.m2/repository /root/.m2/repository
+
+# Copia código fonte e configurações
+COPY pom.xml /app/
+COPY src /app/src/
+
+# Configura variáveis de ambiente para testes
+ENV SPRING_PROFILES_ACTIVE=test
+ENV MAVEN_OPTS="-Xmx1024m"
+
+# Entrypoint para executar testes (pode ser sobrescrito)
+ENTRYPOINT ["mvn"]
+CMD ["test", "-Dspring.profiles.active=test"]
+
+# Stage 5: Produção otimizada
 FROM eclipse-temurin:17-jdk-alpine AS release
 
 LABEL maintainer="DistriSchool Team"

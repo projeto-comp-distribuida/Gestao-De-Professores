@@ -1,8 +1,11 @@
 package com.distrischool.template.service;
 
 import com.distrischool.template.dto.TeacherDTO;
+import com.distrischool.template.dto.auth.ApiResponse;
+import com.distrischool.template.dto.auth.UserResponse;
 import com.distrischool.template.entity.Teacher;
 import com.distrischool.template.exception.ResourceNotFoundException;
+import com.distrischool.template.feign.AuthServiceClient;
 import com.distrischool.template.kafka.DistriSchoolEvent;
 import com.distrischool.template.kafka.EventProducer;
 import com.distrischool.template.repository.TeacherRepository;
@@ -12,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,6 +28,7 @@ public class TeacherService {
     
     private final TeacherRepository teacherRepository;
     private final EventProducer eventProducer;
+    private final AuthServiceClient authServiceClient;
     
     public List<TeacherDTO> findAll() {
         log.info("Buscando todos os professores");
@@ -66,10 +71,12 @@ public class TeacherService {
         Teacher savedTeacher = teacherRepository.save(teacher);
         
         // Publicar evento no Kafka
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("teacher", savedTeacher);
         DistriSchoolEvent event = DistriSchoolEvent.create(
                 "teacher.created", 
                 "teacher-service", 
-                Map.of("teacher", savedTeacher)
+                eventData
         );
         eventProducer.sendEvent("teacher.created", event);
         
@@ -97,10 +104,12 @@ public class TeacherService {
         Teacher updatedTeacher = teacherRepository.save(teacher);
         
         // Publicar evento no Kafka
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("teacher", updatedTeacher);
         DistriSchoolEvent event = DistriSchoolEvent.create(
                 "teacher.updated", 
                 "teacher-service", 
-                Map.of("teacher", updatedTeacher)
+                eventData
         );
         eventProducer.sendEvent("teacher.updated", event);
         
@@ -119,10 +128,12 @@ public class TeacherService {
         teacherRepository.save(teacher);
         
         // Publicar evento no Kafka
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("teacher", teacher);
         DistriSchoolEvent event = DistriSchoolEvent.create(
                 "teacher.deleted", 
                 "teacher-service", 
-                Map.of("teacher", teacher)
+                eventData
         );
         eventProducer.sendEvent("teacher.deleted", event);
         
@@ -151,5 +162,40 @@ public class TeacherService {
                 .stream()
                 .map(TeacherDTO::new)
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * Verifica se o usuário tem a role ADMIN
+     * Usado para autorização de criação de professores
+     */
+    public boolean isAdmin(String auth0Id) {
+        try {
+            log.debug("Verificando se usuário {} tem role ADMIN", auth0Id);
+            
+            // Busca usuário por auth0Id
+            ApiResponse<UserResponse> userResponse = 
+                    authServiceClient.getUserByAuth0Id(auth0Id);
+            
+            if (!userResponse.getSuccess() || userResponse.getData() == null) {
+                log.warn("Usuário não encontrado no auth service: {}", auth0Id);
+                return false;
+            }
+            
+            Long userId = userResponse.getData().getId();
+            
+            // Verifica se tem role ADMIN
+            ApiResponse<Boolean> roleResponse = authServiceClient.hasRole(userId, "ADMIN");
+            
+            boolean isAdmin = roleResponse.getSuccess() && 
+                             roleResponse.getData() != null && 
+                             roleResponse.getData();
+            
+            log.debug("Usuário {} é admin: {}", auth0Id, isAdmin);
+            return isAdmin;
+            
+        } catch (Exception e) {
+            log.error("Erro ao verificar role do usuário {}: {}", auth0Id, e.getMessage(), e);
+            return false;
+        }
     }
 }

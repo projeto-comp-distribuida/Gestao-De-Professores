@@ -22,11 +22,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -62,11 +63,13 @@ public class TeacherManagementService {
         
         Teacher savedTeacher = teacherRepository.save(teacher);
         
-        // Publicar evento no Kafka
+        // Publicar evento no Kafka - usar DTO para evitar problemas de serialização com entidade JPA
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("teacher", new TeacherDTO(savedTeacher));
         DistriSchoolEvent event = DistriSchoolEvent.create(
                 "teacher.created", 
                 "teacher-management-service", 
-                Map.of("teacher", savedTeacher)
+                eventData
         );
         eventProducer.sendEvent("teacher.created", event);
         
@@ -98,11 +101,13 @@ public class TeacherManagementService {
         
         Teacher updatedTeacher = teacherRepository.save(teacher);
         
-        // Publicar evento no Kafka
+        // Publicar evento no Kafka - usar DTO para evitar problemas de serialização com entidade JPA
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("teacher", new TeacherDTO(updatedTeacher));
         DistriSchoolEvent event = DistriSchoolEvent.create(
                 "teacher.updated", 
                 "teacher-management-service", 
-                Map.of("teacher", updatedTeacher)
+                eventData
         );
         eventProducer.sendEvent("teacher.updated", event);
         
@@ -127,13 +132,15 @@ public class TeacherManagementService {
         }
         
         teacher.setDeletedAt(LocalDateTime.now());
-        teacherRepository.save(teacher);
+        Teacher savedTeacher = teacherRepository.save(teacher);
         
-        // Publicar evento no Kafka
+        // Publicar evento no Kafka - usar DTO para evitar problemas de serialização com entidade JPA
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("teacher", new TeacherDTO(savedTeacher));
         DistriSchoolEvent event = DistriSchoolEvent.create(
                 "teacher.deleted", 
                 "teacher-management-service", 
-                Map.of("teacher", teacher)
+                eventData
         );
         eventProducer.sendEvent("teacher.deleted", event);
         
@@ -176,10 +183,12 @@ public class TeacherManagementService {
         sendAssignmentNotification(savedAssignment);
         
         // Publicar evento no Kafka
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("assignment", savedAssignment);
         DistriSchoolEvent event = DistriSchoolEvent.create(
                 "teacher.assigned", 
                 "teacher-management-service", 
-                Map.of("assignment", savedAssignment)
+                eventData
         );
         eventProducer.sendEvent("teacher.assigned", event);
         
@@ -251,10 +260,12 @@ public class TeacherManagementService {
         PerformanceReport savedReport = performanceReportRepository.save(report);
         
         // Publicar evento no Kafka
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("report", savedReport);
         DistriSchoolEvent event = DistriSchoolEvent.create(
                 "performance.report.generated", 
                 "teacher-management-service", 
-                Map.of("report", savedReport)
+                eventData
         );
         eventProducer.sendEvent("performance.report.generated", event);
         
@@ -278,10 +289,12 @@ public class TeacherManagementService {
         assignmentRepository.save(assignment);
         
         // Publicar evento no Kafka
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("assignment", assignment);
         DistriSchoolEvent event = DistriSchoolEvent.create(
                 "assignment.notification.sent", 
                 "teacher-management-service", 
-                Map.of("assignment", assignment)
+                eventData
         );
         eventProducer.sendEvent("assignment.notification.sent", event);
         
@@ -297,15 +310,15 @@ public class TeacherManagementService {
                 action, entityId, description, LocalDateTime.now());
         
         // Publicar evento de auditoria no Kafka
+        Map<String, Object> auditData = new HashMap<>();
+        auditData.put("action", action);
+        auditData.put("entityId", entityId);
+        auditData.put("description", description);
+        auditData.put("timestamp", LocalDateTime.now());
         DistriSchoolEvent auditEvent = DistriSchoolEvent.create(
                 "audit.log", 
                 "teacher-management-service", 
-                Map.of(
-                    "action", action,
-                    "entityId", entityId,
-                    "description", description,
-                    "timestamp", LocalDateTime.now()
-                )
+                auditData
         );
         eventProducer.sendEvent("audit.log", auditEvent);
     }
@@ -325,7 +338,7 @@ public class TeacherManagementService {
     
     private BigDecimal calculateAttendanceRate(Integer classesTaught, Integer totalClasses) {
         if (totalClasses == 0) return BigDecimal.ZERO;
-        return BigDecimal.valueOf(classesTaught).divide(BigDecimal.valueOf(totalClasses), 2, BigDecimal.ROUND_HALF_UP);
+        return BigDecimal.valueOf(classesTaught).divide(BigDecimal.valueOf(totalClasses), 2, RoundingMode.HALF_UP);
     }
     
     private BigDecimal calculateAverageGrade(List<TeacherAssignment> assignments) {

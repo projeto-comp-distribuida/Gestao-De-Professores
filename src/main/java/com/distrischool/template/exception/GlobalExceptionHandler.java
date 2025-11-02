@@ -134,6 +134,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleIllegalStateException(
+            IllegalStateException ex, HttpServletRequest request) {
+
+        log.warn("Estado inválido em {}: {}", request.getRequestURI(), ex.getMessage());
+
+        Map<String, Object> details = new HashMap<>();
+        details.put("error", "IllegalState");
+        details.put("path", request.getRequestURI());
+
+        ApiResponse<Map<String, Object>> body = ApiResponse.error(details, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Map<String, Object>>> handleGlobalException(
             Exception ex, HttpServletRequest request) {

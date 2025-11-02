@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -46,8 +48,29 @@ public class TeacherManagementController {
     }
     
     @PostMapping("/teachers")
-    public ResponseEntity<ApiResponse<TeacherDTO>> createTeacher(@Valid @RequestBody TeacherDTO teacherDTO) {
-        log.info("POST /api/v1/teacher-management/teachers - Criando novo professor");
+    public ResponseEntity<ApiResponse<TeacherDTO>> createTeacher(
+            @Valid @RequestBody TeacherDTO teacherDTO,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @AuthenticationPrincipal Jwt jwt) {
+        
+        String effectiveUserId = userId != null ? userId : (jwt != null ? jwt.getSubject() : null);
+        
+        if (effectiveUserId == null) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Usuário não autenticado"));
+        }
+
+        // Verifica se o usuário tem role/permissão ADMIN via auth service
+        boolean isAdmin = teacherService.isAdmin(effectiveUserId);
+        if (!isAdmin) {
+            log.warn("Tentativa de criar professor sem permissão ADMIN por usuário: {}", effectiveUserId);
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Apenas usuários com role ADMIN podem criar professores"));
+        }
+
+        log.info("POST /api/v1/teacher-management/teachers - Criando novo professor (by {})", effectiveUserId);
         TeacherDTO createdTeacher = teacherManagementService.createTeacher(teacherDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(createdTeacher, "Professor criado com sucesso"));
@@ -248,4 +271,5 @@ public class TeacherManagementController {
         
         return ResponseEntity.ok(ApiResponse.success(health, "Serviço de gestão de professores funcionando"));
     }
+    
 }
