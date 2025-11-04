@@ -1,6 +1,6 @@
 spring:
   application:
-    name: microservice-template
+    name: teacher-management-service
   
   # Configuração do DataSource (PostgreSQL)
   datasource:

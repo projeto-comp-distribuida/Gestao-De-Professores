@@ -13,10 +13,10 @@
     </parent>
     
     <groupId>com.distrischool</groupId>
-    <artifactId>microservice-template</artifactId>
+    <artifactId>teacher-management-service</artifactId>
     <version>1.0.0</version>
-    <name>DistriSchool Microservice Template</name>
-    <description>Template base para microsserviços do DistriSchool - Sistema de Gestão Escolar</description>
+    <name>DistriSchool Teacher Management Service</name>
+    <description>Microserviço de Gestão de Professores para DistriSchool</description>
     
     <properties>
         <java.version>17</java.version>
