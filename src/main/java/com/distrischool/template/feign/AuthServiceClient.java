@@ -27,3 +27,7 @@ public interface AuthServiceClient {
     ApiResponse<Boolean> hasRole(@PathVariable Long userId, @RequestParam String role);
 }
 
+
+
+
+

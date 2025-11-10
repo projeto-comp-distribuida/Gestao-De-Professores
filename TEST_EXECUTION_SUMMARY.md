@@ -81,3 +81,7 @@ docker-compose --profile test run --rm integration-tests test -Dtest=TeacherMana
 - Executar testes individuais
 - Integração com CI/CD
 
+
+
+
+

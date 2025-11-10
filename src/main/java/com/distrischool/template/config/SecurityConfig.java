@@ -189,17 +189,40 @@ public class SecurityConfig {
             }
             
             // Também verifica se há roles em formato diferente (ex: https://distrischool.com/roles)
+            // Suporta tanto Collection (array) quanto String (valor único)
+            // Exemplos suportados:
+            // - "https://api.distrischool.com/role": ["ADMIN"]
+            // - "https://api.distrischool.com/role": "ADMIN"
             var allClaims = jwt.getClaims();
             for (Map.Entry<String, Object> entry : allClaims.entrySet()) {
-                if (entry.getKey().contains("role") && entry.getValue() instanceof Collection<?> roles) {
-                    for (Object r : roles) {
-                        if (r != null) {
-                            String role = r.toString();
-                            if (!role.startsWith("ROLE_")) {
-                                authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
-                            } else {
-                                authorities.add(new SimpleGrantedAuthority(role.toUpperCase()));
+                if (entry.getKey().contains("role")) {
+                    Object roleValue = entry.getValue();
+                    log.debug("Encontrado claim de role: {} = {}", entry.getKey(), roleValue);
+                    
+                    // Caso 1: Role como Collection (array) - ex: "https://api.distrischool.com/role": ["ADMIN"]
+                    if (roleValue instanceof Collection<?> roles) {
+                        log.debug("Processando roles como Collection: {}", roles);
+                        for (Object r : roles) {
+                            if (r != null) {
+                                String role = r.toString();
+                                String authority = !role.startsWith("ROLE_") 
+                                    ? "ROLE_" + role.toUpperCase() 
+                                    : role.toUpperCase();
+                                authorities.add(new SimpleGrantedAuthority(authority));
+                                log.debug("Adicionada authority: {}", authority);
                             }
+                        }
+                    }
+                    // Caso 2: Role como String (valor único) - ex: "https://api.distrischool.com/role": "ADMIN"
+                    else if (roleValue instanceof String role) {
+                        if (!role.trim().isEmpty()) {
+                            log.debug("Processando role como String: {}", role);
+                            String normalizedRole = role.trim();
+                            String authority = !normalizedRole.startsWith("ROLE_") 
+                                ? "ROLE_" + normalizedRole.toUpperCase() 
+                                : normalizedRole.toUpperCase();
+                            authorities.add(new SimpleGrantedAuthority(authority));
+                            log.debug("Adicionada authority: {}", authority);
                         }
                     }
                 }
@@ -233,5 +256,13 @@ public class SecurityConfig {
         }
     }
 }
+
+
+
+
+
+
+
+
 
 
