@@ -30,6 +30,15 @@ public class TeacherService {
     private final EventProducer eventProducer;
     private final AuthServiceClient authServiceClient;
     
+    @org.springframework.beans.factory.annotation.Value("${microservice.kafka.topics.teacher-created:distrischool.teacher.created}")
+    private String teacherCreatedTopic;
+    
+    @org.springframework.beans.factory.annotation.Value("${microservice.kafka.topics.teacher-updated:distrischool.teacher.updated}")
+    private String teacherUpdatedTopic;
+    
+    @org.springframework.beans.factory.annotation.Value("${microservice.kafka.topics.teacher-deleted:distrischool.teacher.deleted}")
+    private String teacherDeletedTopic;
+    
     public List<TeacherDTO> findAll() {
         log.info("Buscando todos os professores");
         return teacherRepository.findAllActive()
@@ -72,13 +81,19 @@ public class TeacherService {
         
         // Publicar evento no Kafka
         Map<String, Object> eventData = new HashMap<>();
-        eventData.put("teacher", savedTeacher);
+        eventData.put("teacherId", savedTeacher.getId());
+        eventData.put("name", savedTeacher.getName());
+        eventData.put("email", savedTeacher.getEmail());
+        eventData.put("employeeId", savedTeacher.getEmployeeId());
+        eventData.put("subjects", savedTeacher.getSubjects());
+        eventData.put("status", savedTeacher.getStatus() != null ? savedTeacher.getStatus().toString() : null);
+        
         DistriSchoolEvent event = DistriSchoolEvent.create(
                 "teacher.created", 
-                "teacher-service", 
+                "teacher-management-service", 
                 eventData
         );
-        eventProducer.sendEvent("teacher.created", event);
+        eventProducer.sendEvent(teacherCreatedTopic, event);
         
         log.info("Professor criado com sucesso: {}", savedTeacher.getId());
         return new TeacherDTO(savedTeacher);
@@ -105,13 +120,19 @@ public class TeacherService {
         
         // Publicar evento no Kafka
         Map<String, Object> eventData = new HashMap<>();
-        eventData.put("teacher", updatedTeacher);
+        eventData.put("teacherId", updatedTeacher.getId());
+        eventData.put("name", updatedTeacher.getName());
+        eventData.put("email", updatedTeacher.getEmail());
+        eventData.put("employeeId", updatedTeacher.getEmployeeId());
+        eventData.put("subjects", updatedTeacher.getSubjects());
+        eventData.put("status", updatedTeacher.getStatus() != null ? updatedTeacher.getStatus().toString() : null);
+        
         DistriSchoolEvent event = DistriSchoolEvent.create(
                 "teacher.updated", 
-                "teacher-service", 
+                "teacher-management-service", 
                 eventData
         );
-        eventProducer.sendEvent("teacher.updated", event);
+        eventProducer.sendEvent(teacherUpdatedTopic, event);
         
         log.info("Professor atualizado com sucesso: {}", updatedTeacher.getId());
         return new TeacherDTO(updatedTeacher);
@@ -129,13 +150,17 @@ public class TeacherService {
         
         // Publicar evento no Kafka
         Map<String, Object> eventData = new HashMap<>();
-        eventData.put("teacher", teacher);
+        eventData.put("teacherId", teacher.getId());
+        eventData.put("name", teacher.getName());
+        eventData.put("email", teacher.getEmail());
+        eventData.put("employeeId", teacher.getEmployeeId());
+        
         DistriSchoolEvent event = DistriSchoolEvent.create(
                 "teacher.deleted", 
-                "teacher-service", 
+                "teacher-management-service", 
                 eventData
         );
-        eventProducer.sendEvent("teacher.deleted", event);
+        eventProducer.sendEvent(teacherDeletedTopic, event);
         
         log.info("Professor excluído com sucesso: {}", id);
     }

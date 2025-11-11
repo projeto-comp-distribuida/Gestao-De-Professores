@@ -2,7 +2,6 @@ package com.distrischool.teacher.controller;
 
 import com.distrischool.teacher.dto.ApiResponse;
 import com.distrischool.teacher.dto.TeacherDTO;
-import com.distrischool.teacher.entity.Teacher;
 import com.distrischool.teacher.entity.TeacherAssignment;
 import com.distrischool.teacher.entity.Schedule;
 import com.distrischool.teacher.entity.PerformanceReport;

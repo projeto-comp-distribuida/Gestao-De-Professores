@@ -2,7 +2,6 @@ package com.distrischool.teacher.dto;
 
 import com.distrischool.teacher.entity.Teacher;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;

@@ -2,7 +2,6 @@ package com.distrischool.teacher.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.util.List;
 
 @Entity
 @Table(name = "subjects")

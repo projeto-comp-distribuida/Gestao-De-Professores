@@ -171,7 +171,7 @@ microservice:
     url: ${MICROSERVICE_AUTH_URL:http://microservice-auth-dev:8080}
   kafka:
     topics:
-      # Defina seus tópicos aqui conforme os requisitos do DistriSchool
-      # Exemplos: student.created, teacher.assigned, schedule.updated, etc.
-      example-event: distrischool.example.event
-      example-command: distrischool.example.command
+      # Tópicos de eventos de professores
+      teacher-created: distrischool.teacher.created
+      teacher-updated: distrischool.teacher.updated
+      teacher-deleted: distrischool.teacher.deleted
