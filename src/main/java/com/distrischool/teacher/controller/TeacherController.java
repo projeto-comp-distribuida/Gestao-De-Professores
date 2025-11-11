@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -45,6 +46,7 @@ public class TeacherController {
     }
     
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<ApiResponse<TeacherDTO>> createTeacher(@Valid @RequestBody TeacherDTO teacherDTO) {
         log.info("POST /api/v1/teachers - Criando novo professor");
         TeacherDTO createdTeacher = teacherService.create(teacherDTO);
@@ -53,6 +55,7 @@ public class TeacherController {
     }
     
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<TeacherDTO>> updateTeacher(
             @PathVariable Long id, 
             @Valid @RequestBody TeacherDTO teacherDTO) {
@@ -62,6 +65,7 @@ public class TeacherController {
     }
     
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteTeacher(@PathVariable Long id) {
         log.info("DELETE /api/v1/teachers/{} - Excluindo professor", id);
         teacherService.delete(id);

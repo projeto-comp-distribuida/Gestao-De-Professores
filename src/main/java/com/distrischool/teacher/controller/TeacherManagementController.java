@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -47,28 +48,13 @@ public class TeacherManagementController {
     }
     
     @PostMapping("/teachers")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<ApiResponse<TeacherDTO>> createTeacher(
             @Valid @RequestBody TeacherDTO teacherDTO,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @AuthenticationPrincipal Jwt jwt) {
         
         String effectiveUserId = userId != null ? userId : (jwt != null ? jwt.getSubject() : null);
-        
-        if (effectiveUserId == null) {
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Usuário não autenticado"));
-        }
-
-        // Verifica se o usuário tem role/permissão ADMIN via auth service
-        boolean isAdmin = teacherService.isAdmin(effectiveUserId);
-        if (!isAdmin) {
-            log.warn("Tentativa de criar professor sem permissão ADMIN por usuário: {}", effectiveUserId);
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .body(ApiResponse.error("Apenas usuários com role ADMIN podem criar professores"));
-        }
-
         log.info("POST /api/v1/teacher-management/teachers - Criando novo professor (by {})", effectiveUserId);
         TeacherDTO createdTeacher = teacherManagementService.createTeacher(teacherDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -76,6 +62,7 @@ public class TeacherManagementController {
     }
     
     @PutMapping("/teachers/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<TeacherDTO>> updateTeacher(
             @PathVariable Long id, 
             @Valid @RequestBody TeacherDTO teacherDTO) {
@@ -85,6 +72,7 @@ public class TeacherManagementController {
     }
     
     @DeleteMapping("/teachers/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteTeacher(@PathVariable Long id) {
         log.info("DELETE /api/v1/teacher-management/teachers/{} - Excluindo professor", id);
         teacherManagementService.deleteTeacher(id);
@@ -94,6 +82,7 @@ public class TeacherManagementController {
     // ========== ATRIBUIÇÃO DE DISCIPLINAS/TURMAS ==========
     
     @PostMapping("/assignments")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<TeacherAssignment>> assignTeacherToClass(
             @RequestParam Long teacherId,
             @RequestParam Long subjectId,
