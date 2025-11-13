@@ -2,7 +2,7 @@
 # Suporta desenvolvimento com hot reloading e produção otimizada
 
 # Stage 1: Resolver dependências (cache layer)
-FROM maven:3.9-eclipse-temurin-17-alpine AS deps
+FROM maven:3.9-eclipse-temurin-17 AS deps
 
 WORKDIR /app
 COPY pom.xml /app
@@ -11,7 +11,7 @@ COPY pom.xml /app
 RUN mvn dependency:resolve
 
 # Stage 2: Build da aplicação
-FROM maven:3.9-eclipse-temurin-17-alpine AS build
+FROM maven:3.9-eclipse-temurin-17 AS build
 
 WORKDIR /app
 COPY --from=deps /root/.m2/repository /root/.m2/repository
@@ -20,14 +20,14 @@ COPY . /app
 RUN mvn package -DskipTests
 
 # Stage 3: Desenvolvimento com hot reloading
-FROM maven:3.9-eclipse-temurin-17-alpine AS dev
+FROM maven:3.9-eclipse-temurin-17 AS dev
 
 WORKDIR /app
 COPY --from=deps /root/.m2/repository /root/.m2/repository
 COPY ./docker-entrypoint.sh /docker-entrypoint.sh
 
 # Instala inotify-tools para monitorar mudanças nos arquivos
-RUN apk add inotify-tools
+RUN apt-get update && apt-get install -y inotify-tools && rm -rf /var/lib/apt/lists/*
 RUN chmod +x /docker-entrypoint.sh
 
 # Configurações para hot reload

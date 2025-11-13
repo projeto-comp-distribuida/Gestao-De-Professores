@@ -16,21 +16,22 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: postgres
+    container_name: postgres-teachers
+    hostname: postgres
     environment:
-      POSTGRES_DB: distrischool_template
+      POSTGRES_DB: distrischool_teachers
       POSTGRES_USER: distrischool
       POSTGRES_PASSWORD: distrischool123
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
-      - "5439:5432"
+      - "5437:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
     networks:
       - distrischool-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U distrischool -d distrischool_template"]
+      test: ["CMD-SHELL", "pg_isready -U distrischool -d distrischool_teachers"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -104,26 +105,25 @@ services:
     networks:
       - distrischool-network
 
-  # Microserviço Template - Ambiente de Desenvolvimento com Hot Reloading
-  microservice-template-dev:
+  # Microserviço Teacher Management - Ambiente de Desenvolvimento com Hot Reloading
+  teacher-management-service-dev:
     build:
       context: .
       dockerfile: Dockerfile
       target: dev
-    container_name: microservice-template-dev
+    container_name: teacher-management-service-dev
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
+    extra_hosts:
+      - "postgres:172.22.0.2"
     ports:
-      - "8080:8080"
-      - "5005:5005"   # Porta para debug remoto
-      - "35729:35729" # Porta para LiveReload
+      - "8081:8080"
+      - "5006:5005"   # Porta para debug remoto
+      - "35730:35729" # Porta para LiveReload
     environment:
       SERVER_PORT: 8080
+      # Kafka compartilhado
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SPRING_PROFILES_ACTIVE: dev
       SECURITY_DISABLE: "false"
@@ -134,11 +134,11 @@ services:
       SPRING_DEVTOOLS_RESTART_POLL_INTERVAL: "1000"
       SPRING_DEVTOOLS_RESTART_QUIET_PERIOD: "400"
       # Configurações do PostgreSQL
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/distrischool_template
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/distrischool_teachers
       SPRING_DATASOURCE_USERNAME: distrischool
       SPRING_DATASOURCE_PASSWORD: distrischool123
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
-      # Configurações do Redis
+      # Configurações do Redis (usando Redis compartilhado)
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
       SPRING_REDIS_PASSWORD: ""
@@ -155,6 +155,7 @@ services:
       - maven-cache:/root/.m2
     networks:
       - distrischool-network
+      - gestao-de-notas_distrischool-network
     # Remove o healthcheck para facilitar o desenvolvimento
     # O Spring Boot DevTools pode reiniciar frequentemente
 
@@ -182,6 +183,8 @@ services:
 networks:
   distrischool-network:
     driver: bridge
+  gestao-de-notas_distrischool-network:
+    external: true
 
 volumes:
   maven-cache:
