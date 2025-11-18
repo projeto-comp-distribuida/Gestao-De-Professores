@@ -114,6 +114,6 @@ public class TeacherController {
         
         List<Map<String, Object>> teachers = teacherService.getTeachersByIds(teacherIds);
         log.info("Encontrados {} professores de {} IDs solicitados", teachers.size(), teacherIds.size());
-        return ResponseEntity.ok(ApiResponse.success(teachers));
+        return ResponseEntity.ok(ApiResponse.success(teachers, "Busca em lote concluída com sucesso"));
     }
 }
