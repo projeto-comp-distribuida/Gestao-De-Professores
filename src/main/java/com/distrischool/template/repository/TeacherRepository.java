@@ -27,4 +27,10 @@ public interface TeacherRepository extends JpaRepository<Teacher, Long> {
     
     @Query("SELECT t FROM Teacher t WHERE t.hireDate >= :startDate AND t.hireDate <= :endDate")
     List<Teacher> findByHireDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    
+    /**
+     * Busca múltiplos professores por IDs, excluindo os deletados
+     */
+    @Query("SELECT t FROM Teacher t WHERE t.id IN :ids AND t.deletedAt IS NULL")
+    List<Teacher> findByIdsNotDeleted(@Param("ids") List<Long> ids);
 }

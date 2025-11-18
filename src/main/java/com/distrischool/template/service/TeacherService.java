@@ -165,6 +165,46 @@ public class TeacherService {
     }
     
     /**
+     * Busca múltiplos professores por IDs (validação em lote)
+     * Retorna uma lista de Maps com os dados dos professores
+     */
+    public List<Map<String, Object>> getTeachersByIds(List<Long> teacherIds) {
+        log.debug("Buscando múltiplos professores por IDs: {}", teacherIds);
+        
+        if (teacherIds == null || teacherIds.isEmpty()) {
+            return List.of();
+        }
+        
+        List<Teacher> teachers = teacherRepository.findByIdsNotDeleted(teacherIds);
+        
+        return teachers.stream()
+                .map(teacher -> {
+                    TeacherDTO dto = new TeacherDTO(teacher);
+                    return convertDtoToMap(dto);
+                })
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Converte TeacherDTO para Map<String, Object>
+     */
+    private Map<String, Object> convertDtoToMap(TeacherDTO dto) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", dto.getId());
+        map.put("name", dto.getName());
+        map.put("employeeId", dto.getEmployeeId());
+        map.put("birthDate", dto.getBirthDate());
+        map.put("email", dto.getEmail());
+        map.put("phone", dto.getPhone());
+        map.put("qualification", dto.getQualification());
+        map.put("subjects", dto.getSubjects());
+        map.put("status", dto.getStatus() != null ? dto.getStatus().toString() : null);
+        map.put("hireDate", dto.getHireDate());
+        map.put("salary", dto.getSalary());
+        return map;
+    }
+    
+    /**
      * Verifica se o usuário tem a role ADMIN
      * Usado para autorização de criação de professores
      */

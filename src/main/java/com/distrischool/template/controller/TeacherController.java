@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/teachers")
@@ -89,5 +90,30 @@ public class TeacherController {
         log.info("GET /api/v1/teachers/hired - Buscando professores contratados entre {} e {}", startDate, endDate);
         List<TeacherDTO> teachers = teacherService.findByHireDateRange(startDate, endDate);
         return ResponseEntity.ok(ApiResponse.success(teachers, "Professores contratados no período listados"));
+    }
+    
+    /**
+     * Busca múltiplos professores por IDs (validação em lote)
+     * POST /api/v1/teachers/batch
+     * 
+     * Este endpoint é usado por outros microserviços para validar a existência de professores.
+     * Retorna uma lista de Maps com os dados dos professores encontrados.
+     * 
+     * @param teacherIds Lista de IDs dos professores a serem buscados
+     * @return Lista de Maps contendo os dados dos professores encontrados
+     */
+    @PostMapping("/batch")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getTeachersByIds(
+            @RequestBody(required = false) List<Long> teacherIds) {
+        log.info("Requisição para buscar múltiplos professores por IDs: {}", teacherIds);
+        
+        if (teacherIds == null || teacherIds.isEmpty()) {
+            log.warn("Lista de IDs vazia ou nula recebida");
+            return ResponseEntity.ok(ApiResponse.success(List.of(), "Nenhum ID fornecido"));
+        }
+        
+        List<Map<String, Object>> teachers = teacherService.getTeachersByIds(teacherIds);
+        log.info("Encontrados {} professores de {} IDs solicitados", teachers.size(), teacherIds.size());
+        return ResponseEntity.ok(ApiResponse.success(teachers));
     }
 }
