@@ -46,9 +46,11 @@ public class TeacherController {
     }
     
     @PostMapping
-    public ResponseEntity<ApiResponse<TeacherDTO>> createTeacher(@Valid @RequestBody TeacherDTO teacherDTO) {
+    public ResponseEntity<ApiResponse<TeacherDTO>> createTeacher(
+            @Valid @RequestBody TeacherDTO teacherDTO,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
         log.info("POST /api/v1/teachers - Criando novo professor");
-        TeacherDTO createdTeacher = teacherService.create(teacherDTO);
+        TeacherDTO createdTeacher = teacherService.create(teacherDTO, authorization);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(createdTeacher, "Professor criado com sucesso"));
     }

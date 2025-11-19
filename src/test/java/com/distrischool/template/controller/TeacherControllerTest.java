@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -107,7 +108,7 @@ class TeacherControllerTest {
                 .email("maria@email.com")
                 .build();
 
-        when(teacherService.create(any(TeacherDTO.class))).thenReturn(createdTeacher);
+        when(teacherService.create(any(TeacherDTO.class), anyString())).thenReturn(createdTeacher);
 
         // When & Then
         mockMvc.perform(post("/api/v1/teachers")

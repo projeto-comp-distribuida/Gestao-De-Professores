@@ -7,8 +7,12 @@ import com.distrischool.template.entity.Subject;
 import com.distrischool.template.entity.ClassGroup;
 import com.distrischool.template.entity.PerformanceReport;
 import com.distrischool.template.exception.ResourceNotFoundException;
+import com.distrischool.template.feign.AuthServiceClient;
 import com.distrischool.template.kafka.DistriSchoolEvent;
 import com.distrischool.template.kafka.EventProducer;
+import com.distrischool.template.dto.auth.ApiResponse;
+import com.distrischool.template.dto.auth.AuthResponse;
+import com.distrischool.template.dto.auth.UserResponse;
 import com.distrischool.template.repository.TeacherRepository;
 import com.distrischool.template.repository.TeacherAssignmentRepository;
 import com.distrischool.template.repository.SubjectRepository;
@@ -66,6 +70,9 @@ class TeacherManagementServiceIntegrationTest {
     @MockBean
     private EventProducer eventProducer;
 
+    @MockBean
+    private AuthServiceClient authServiceClient;
+
     private Teacher savedTeacher;
     private Subject savedSubject;
     private ClassGroup savedClassGroup;
@@ -112,6 +119,23 @@ class TeacherManagementServiceIntegrationTest {
         // Reset and configure EventProducer mock to do nothing
         reset(eventProducer);
         doNothing().when(eventProducer).sendEvent(any(String.class), any(DistriSchoolEvent.class));
+        
+        // Mock AuthServiceClient to return successful response
+        UserResponse userResponse = UserResponse.builder()
+                .id(1L)
+                .email("test@email.com")
+                .auth0Id("auth0-test-id")
+                .active(true)
+                .build();
+        AuthResponse authResponse = AuthResponse.builder()
+                .user(userResponse)
+                .build();
+        ApiResponse<AuthResponse> apiResponse = ApiResponse.<AuthResponse>builder()
+                .success(true)
+                .data(authResponse)
+                .message("User registered successfully")
+                .build();
+        when(authServiceClient.registerUser(any(String.class), any())).thenReturn(apiResponse);
     }
 
     @Test
@@ -132,7 +156,7 @@ class TeacherManagementServiceIntegrationTest {
                 .build();
 
         // When
-        TeacherDTO result = teacherManagementService.createTeacher(teacherDTO);
+        TeacherDTO result = teacherManagementService.createTeacher(teacherDTO, "Bearer test-token");
 
         // Then
         assertNotNull(result);

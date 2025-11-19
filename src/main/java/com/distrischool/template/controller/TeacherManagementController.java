@@ -51,6 +51,7 @@ public class TeacherManagementController {
     public ResponseEntity<ApiResponse<TeacherDTO>> createTeacher(
             @Valid @RequestBody TeacherDTO teacherDTO,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "Authorization", required = false) String authorization,
             @AuthenticationPrincipal Jwt jwt) {
         
         String effectiveUserId = userId != null ? userId : (jwt != null ? jwt.getSubject() : null);
@@ -71,7 +72,7 @@ public class TeacherManagementController {
         }
 
         log.info("POST /api/v1/teacher-management/teachers - Criando novo professor (by {})", effectiveUserId);
-        TeacherDTO createdTeacher = teacherManagementService.createTeacher(teacherDTO);
+        TeacherDTO createdTeacher = teacherManagementService.createTeacher(teacherDTO, authorization);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(createdTeacher, "Professor criado com sucesso"));
     }

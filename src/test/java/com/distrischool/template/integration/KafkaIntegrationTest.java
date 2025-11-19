@@ -1,11 +1,15 @@
 package com.distrischool.template.integration;
 
 import com.distrischool.template.entity.Teacher;
+import com.distrischool.template.feign.AuthServiceClient;
 import com.distrischool.template.kafka.DistriSchoolEvent;
 import com.distrischool.template.kafka.EventProducer;
 import com.distrischool.template.repository.TeacherRepository;
 import com.distrischool.template.service.TeacherManagementService;
 import com.distrischool.template.dto.TeacherDTO;
+import com.distrischool.template.dto.auth.ApiResponse;
+import com.distrischool.template.dto.auth.AuthResponse;
+import com.distrischool.template.dto.auth.UserResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,6 +59,9 @@ class KafkaIntegrationTest {
     @MockBean
     private EventProducer eventProducer;
 
+    @MockBean
+    private AuthServiceClient authServiceClient;
+
     private Teacher savedTeacher;
 
     @BeforeEach
@@ -76,6 +83,23 @@ class KafkaIntegrationTest {
         // Reset and configure EventProducer mock to do nothing
         reset(eventProducer);
         doNothing().when(eventProducer).sendEvent(any(String.class), any(DistriSchoolEvent.class));
+        
+        // Mock AuthServiceClient to return successful response
+        UserResponse userResponse = UserResponse.builder()
+                .id(1L)
+                .email("test@email.com")
+                .auth0Id("auth0-test-id")
+                .active(true)
+                .build();
+        AuthResponse authResponse = AuthResponse.builder()
+                .user(userResponse)
+                .build();
+        ApiResponse<AuthResponse> apiResponse = ApiResponse.<AuthResponse>builder()
+                .success(true)
+                .data(authResponse)
+                .message("User registered successfully")
+                .build();
+        when(authServiceClient.registerUser(any(String.class), any())).thenReturn(apiResponse);
     }
 
     @Test
@@ -89,7 +113,7 @@ class KafkaIntegrationTest {
                 .build();
 
         // When
-        teacherManagementService.createTeacher(teacherDTO);
+        teacherManagementService.createTeacher(teacherDTO, "Bearer test-token");
 
         // Then
         verify(eventProducer, times(1)).sendEvent(eq("teacher.created"), any(DistriSchoolEvent.class));
@@ -147,7 +171,7 @@ class KafkaIntegrationTest {
                 .build();
 
         // When
-        teacherManagementService.createTeacher(teacherDTO);
+        teacherManagementService.createTeacher(teacherDTO, "Bearer test-token");
 
         // Then
         verify(eventProducer, atLeastOnce()).sendEvent(eq("audit.log"), any(DistriSchoolEvent.class));
@@ -164,7 +188,7 @@ class KafkaIntegrationTest {
                 .build();
 
         // When
-        teacherManagementService.createTeacher(teacherDTO);
+        teacherManagementService.createTeacher(teacherDTO, "Bearer test-token");
 
         // Then
         verify(eventProducer).sendEvent(

@@ -53,6 +53,13 @@ public class Teacher extends BaseEntity {
     @Column(name = "salary", precision = 10, scale = 2)
     private BigDecimal salary;
     
+    /**
+     * Auth0 User ID (vínculo com o serviço de autenticação)
+     * Referência ao usuário criado no auth service quando o professor é criado
+     */
+    @Column(name = "auth0_id", unique = true, nullable = true, length = 255)
+    private String auth0Id;
+    
     public enum TeacherStatus {
         ACTIVE, INACTIVE, ON_LEAVE, RETIRED
     }

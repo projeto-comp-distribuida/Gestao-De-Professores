@@ -2,7 +2,6 @@ package com.distrischool.template.dto;
 
 import com.distrischool.template.entity.Teacher;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,7 +22,10 @@ public class TeacherDTO {
     private String employeeId;
     
     private LocalDate birthDate;
+    
+    @NotBlank(message = "Email é obrigatório")
     private String email;
+    
     private String phone;
     private String qualification;
     private List<String> subjects;

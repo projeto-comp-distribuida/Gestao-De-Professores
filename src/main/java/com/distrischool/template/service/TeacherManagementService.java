@@ -1,13 +1,18 @@
 package com.distrischool.template.service;
 
 import com.distrischool.template.dto.TeacherDTO;
+import com.distrischool.template.dto.auth.ApiResponse;
+import com.distrischool.template.dto.auth.AuthResponse;
+import com.distrischool.template.dto.auth.RegisterUserRequest;
 import com.distrischool.template.entity.Teacher;
 import com.distrischool.template.entity.TeacherAssignment;
 import com.distrischool.template.entity.Schedule;
 import com.distrischool.template.entity.PerformanceReport;
 import com.distrischool.template.entity.Subject;
 import com.distrischool.template.entity.ClassGroup;
+import com.distrischool.template.exception.BusinessException;
 import com.distrischool.template.exception.ResourceNotFoundException;
+import com.distrischool.template.feign.AuthServiceClient;
 import com.distrischool.template.kafka.DistriSchoolEvent;
 import com.distrischool.template.kafka.EventProducer;
 import com.distrischool.template.repository.TeacherRepository;
@@ -23,11 +28,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -42,10 +51,11 @@ public class TeacherManagementService {
     private final SubjectRepository subjectRepository;
     private final ClassGroupRepository classGroupRepository;
     private final EventProducer eventProducer;
+    private final AuthServiceClient authServiceClient;
     
     // ========== GESTÃO DE PROFESSORES ==========
     
-    public TeacherDTO createTeacher(TeacherDTO teacherDTO) {
+    public TeacherDTO createTeacher(TeacherDTO teacherDTO, String authorizationHeader) {
         log.info("Criando novo professor: {}", teacherDTO.getName());
         
         Teacher teacher = Teacher.builder()
@@ -60,6 +70,23 @@ public class TeacherManagementService {
                 .hireDate(teacherDTO.getHireDate())
                 .salary(teacherDTO.getSalary())
                 .build();
+        
+        // Cria usuário no auth service antes de salvar o professor
+        // auth0Id será definido após criar o usuário no serviço de auth
+        log.info("Iniciando criação de usuário Auth0 antes de salvar professor no banco");
+        String auth0Id = null;
+        try {
+            auth0Id = createAuthUserForTeacher(teacher, authorizationHeader);
+            if (auth0Id == null || auth0Id.isBlank()) {
+                log.error("createAuthUserForTeacher retornou auth0Id nulo ou vazio para professor: {}", teacher.getEmail());
+                throw new BusinessException("Falha ao obter Auth0 ID após registro do usuário");
+            }
+            teacher.setAuth0Id(auth0Id);
+            log.info("Auth0 ID obtido com sucesso: {} para professor: {}", auth0Id, teacher.getEmail());
+        } catch (Exception e) {
+            log.error("Erro ao criar usuário Auth0 para professor {}: {}", teacher.getEmail(), e.getMessage(), e);
+            throw new BusinessException("Não foi possível criar o professor: falha ao registrar usuário no Auth0. " + e.getMessage());
+        }
         
         Teacher savedTeacher = teacherRepository.save(teacher);
         
@@ -324,6 +351,127 @@ public class TeacherManagementService {
     }
     
     // ========== MÉTODOS AUXILIARES ==========
+    
+    /**
+     * Cria um usuário no serviço de autenticação para o professor
+     */
+    private String createAuthUserForTeacher(Teacher teacher, String authorizationHeader) {
+        log.info("Iniciando registro de usuário Auth0 para professor: {} ({})", teacher.getEmail(), teacher.getName());
+        
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            log.warn("Authorization header está vazio ou nulo. Tentando registrar sem header de autorização.");
+        }
+        
+        try {
+            String password = generateSecurePassword();
+
+            RegisterUserRequest registerUserRequest = RegisterUserRequest.builder()
+                    .email(teacher.getEmail())
+                    .password(password)
+                    .confirmPassword(password)
+                    .firstName(extractFirstName(teacher.getName()))
+                    .lastName(extractLastName(teacher.getName()))
+                    .phone(teacher.getPhone())
+                    .documentNumber(null) // Professores podem não ter CPF obrigatório
+                    .roles(Set.of("TEACHER"))
+                    .build();
+
+            log.info("Chamando authServiceClient.registerUser para email: {}", teacher.getEmail());
+            ApiResponse<AuthResponse> response = authServiceClient.registerUser(authorizationHeader, registerUserRequest);
+            log.info("Resposta recebida do authServiceClient: success={}, message={}", 
+                    response != null ? response.getSuccess() : "null", 
+                    response != null ? response.getMessage() : "null");
+
+            if (response == null) {
+                throw new BusinessException("Serviço de autenticação não respondeu ao registrar o usuário do professor");
+            }
+
+            if (!Boolean.TRUE.equals(response.getSuccess())) {
+                String message = response.getMessage() != null ? response.getMessage() : "Resposta sem sucesso do serviço de autenticação";
+                throw new BusinessException("Falha ao registrar usuário no Auth0: " + message);
+            }
+
+            AuthResponse data = response.getData();
+            if (data == null || data.getUser() == null) {
+                throw new BusinessException("Serviço de autenticação não retornou os dados do usuário registrado");
+            }
+
+            String auth0Id = data.getUser().getAuth0Id();
+            if (auth0Id == null || auth0Id.isBlank()) {
+                throw new BusinessException("Serviço de autenticação não retornou o Auth0 ID do usuário");
+            }
+
+            log.info("Usuário Auth0 registrado com sucesso para {} - auth0Id={}", teacher.getEmail(), auth0Id);
+            return auth0Id;
+        } catch (BusinessException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Falha ao registrar usuário Auth0 para {}: {}", teacher.getEmail(), ex.getMessage(), ex);
+            throw new BusinessException("Erro ao registrar usuário no Auth0: " + ex.getMessage());
+        }
+    }
+
+    /**
+     * Gera uma senha segura para o usuário
+     */
+    private String generateSecurePassword() {
+        final String lower = "abcdefghijklmnopqrstuvwxyz";
+        final String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        final String digits = "0123456789";
+        final String special = "@$!%*?&";
+        final String allChars = lower + upper + digits + special;
+        final int length = 12;
+
+        SecureRandom random = new SecureRandom();
+        ArrayList<Character> passwordChars = new ArrayList<>();
+
+        passwordChars.add(lower.charAt(random.nextInt(lower.length())));
+        passwordChars.add(upper.charAt(random.nextInt(upper.length())));
+        passwordChars.add(digits.charAt(random.nextInt(digits.length())));
+        passwordChars.add(special.charAt(random.nextInt(special.length())));
+
+        while (passwordChars.size() < length) {
+            passwordChars.add(allChars.charAt(random.nextInt(allChars.length())));
+        }
+
+        Collections.shuffle(passwordChars, random);
+
+        StringBuilder password = new StringBuilder();
+        for (Character c : passwordChars) {
+            password.append(c);
+        }
+        return password.toString();
+    }
+
+    /**
+     * Extrai o primeiro nome do nome completo
+     */
+    private String extractFirstName(String fullName) {
+        if (fullName == null || fullName.isBlank()) {
+            return "Teacher";
+        }
+        String trimmed = fullName.trim();
+        int spaceIndex = trimmed.indexOf(' ');
+        if (spaceIndex == -1) {
+            return trimmed;
+        }
+        return trimmed.substring(0, spaceIndex);
+    }
+
+    /**
+     * Extrai o último nome do nome completo
+     */
+    private String extractLastName(String fullName) {
+        if (fullName == null || fullName.isBlank()) {
+            return "User";
+        }
+        String trimmed = fullName.trim();
+        int spaceIndex = trimmed.indexOf(' ');
+        if (spaceIndex == -1) {
+            return trimmed;
+        }
+        return trimmed.substring(spaceIndex + 1);
+    }
     
     private Integer calculateTotalClasses(List<TeacherAssignment> assignments) {
         return assignments.stream()

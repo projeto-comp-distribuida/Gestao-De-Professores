@@ -1,7 +1,11 @@
 package com.distrischool.template.service;
 
 import com.distrischool.template.dto.TeacherDTO;
+import com.distrischool.template.dto.auth.ApiResponse;
+import com.distrischool.template.dto.auth.AuthResponse;
+import com.distrischool.template.dto.auth.UserResponse;
 import com.distrischool.template.entity.Teacher;
+import com.distrischool.template.feign.AuthServiceClient;
 import com.distrischool.template.kafka.DistriSchoolEvent;
 import com.distrischool.template.kafka.EventProducer;
 import com.distrischool.template.repository.TeacherRepository;
@@ -19,6 +23,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,6 +34,9 @@ class TeacherServiceTest {
 
     @Mock
     private EventProducer eventProducer;
+
+    @Mock
+    private AuthServiceClient authServiceClient;
 
     @InjectMocks
     private TeacherService teacherService;
@@ -51,16 +59,35 @@ class TeacherServiceTest {
         savedTeacher.setId(1L);
         savedTeacher.setName("Maria Silva");
         savedTeacher.setEmployeeId("PROF001");
+        savedTeacher.setAuth0Id("auth0|123456");
 
+        // Mock Auth0 response
+        UserResponse userResponse = UserResponse.builder()
+                .id(1L)
+                .auth0Id("auth0|123456")
+                .email("maria@email.com")
+                .build();
+        
+        AuthResponse authResponse = AuthResponse.builder()
+                .user(userResponse)
+                .build();
+        
+        ApiResponse<AuthResponse> apiResponse = ApiResponse.<AuthResponse>builder()
+                .success(true)
+                .data(authResponse)
+                .build();
+
+        when(authServiceClient.registerUser(anyString(), any())).thenReturn(apiResponse);
         when(teacherRepository.save(any(Teacher.class))).thenReturn(savedTeacher);
 
         // When
-        TeacherDTO result = teacherService.create(teacherDTO);
+        TeacherDTO result = teacherService.create(teacherDTO, "Bearer token");
 
         // Then
         assertNotNull(result);
         assertEquals("Maria Silva", result.getName());
         assertEquals("PROF001", result.getEmployeeId());
+        verify(authServiceClient).registerUser(anyString(), any());
         verify(teacherRepository).save(any(Teacher.class));
         verify(eventProducer).sendEvent(eq("teacher.created"), any(DistriSchoolEvent.class));
     }
