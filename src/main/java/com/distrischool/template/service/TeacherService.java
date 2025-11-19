@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -233,12 +234,75 @@ public class TeacherService {
     }
     
     /**
-     * Verifica se o usuário tem a role ADMIN
+     * Verifica se o usuário tem a role ADMIN diretamente do token JWT
      * Usado para autorização de criação de professores
+     * 
+     * @param jwt O token JWT do usuário autenticado
+     * @return true se o usuário tem role ADMIN, false caso contrário
      */
+    public boolean isAdmin(org.springframework.security.oauth2.jwt.Jwt jwt) {
+        if (jwt == null) {
+            log.warn("JWT é nulo, não é possível verificar role ADMIN");
+            return false;
+        }
+        
+        try {
+            log.debug("Verificando role ADMIN no token JWT para usuário: {}", jwt.getSubject());
+            
+            // Verifica todas as claims que contêm "role" no nome
+            var allClaims = jwt.getClaims();
+            for (Map.Entry<String, Object> entry : allClaims.entrySet()) {
+                if (entry.getKey().contains("role")) {
+                    Object roleValue = entry.getValue();
+                    log.debug("Encontrado claim de role: {} = {}", entry.getKey(), roleValue);
+                    
+                    // Caso 1: Role como Collection (array) - ex: "https://api.distrischool.com/role": ["ADMIN"]
+                    if (roleValue instanceof Collection<?> roles) {
+                        for (Object r : roles) {
+                            if (r != null && "ADMIN".equalsIgnoreCase(r.toString())) {
+                                log.debug("Role ADMIN encontrada no token");
+                                return true;
+                            }
+                        }
+                    }
+                    // Caso 2: Role como String (valor único) - ex: "https://api.distrischool.com/role": "ADMIN"
+                    else if (roleValue instanceof String role) {
+                        if ("ADMIN".equalsIgnoreCase(role.trim())) {
+                            log.debug("Role ADMIN encontrada no token");
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            // Também verifica as authorities do Spring Security (já processadas pelo JwtAuthenticationConverter)
+            var authorities = jwt.getClaimAsStringList("authorities");
+            if (authorities != null) {
+                for (String authority : authorities) {
+                    if (authority != null && (authority.equals("ROLE_ADMIN") || authority.equals("ADMIN"))) {
+                        log.debug("Role ADMIN encontrada nas authorities");
+                        return true;
+                    }
+                }
+            }
+            
+            log.debug("Role ADMIN não encontrada no token para usuário: {}", jwt.getSubject());
+            return false;
+            
+        } catch (Exception e) {
+            log.error("Erro ao verificar role ADMIN no token JWT: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Verifica se o usuário tem a role ADMIN via chamada ao auth service
+     * @deprecated Use isAdmin(Jwt jwt) para verificar diretamente do token JWT
+     */
+    @Deprecated
     public boolean isAdmin(String auth0Id) {
         try {
-            log.debug("Verificando se usuário {} tem role ADMIN", auth0Id);
+            log.debug("Verificando se usuário {} tem role ADMIN via auth service", auth0Id);
             
             // Busca usuário por auth0Id
             ApiResponse<UserResponse> userResponse = 

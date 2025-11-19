@@ -206,22 +206,35 @@ public class TeacherManagementService {
         
         TeacherAssignment savedAssignment = assignmentRepository.save(assignment);
         
-        // Enviar notificação
-        sendAssignmentNotification(savedAssignment);
+        // Enviar notificação (não deve falhar a operação se houver erro)
+        try {
+            sendAssignmentNotification(savedAssignment);
+        } catch (Exception e) {
+            log.error("Erro ao enviar notificação de atribuição, mas a atribuição foi salva: {}", e.getMessage(), e);
+        }
         
-        // Publicar evento no Kafka
-        Map<String, Object> eventData = new HashMap<>();
-        eventData.put("assignment", savedAssignment);
-        DistriSchoolEvent event = DistriSchoolEvent.create(
-                "teacher.assigned", 
-                "teacher-management-service", 
-                eventData
-        );
-        eventProducer.sendEvent("teacher.assigned", event);
+        // Publicar evento no Kafka - usar Map para evitar problemas de serialização com entidade JPA
+        try {
+            Map<String, Object> eventData = new HashMap<>();
+            Map<String, Object> assignmentData = convertAssignmentToMap(savedAssignment);
+            eventData.put("assignment", assignmentData);
+            DistriSchoolEvent event = DistriSchoolEvent.create(
+                    "teacher.assigned", 
+                    "teacher-management-service", 
+                    eventData
+            );
+            eventProducer.sendEvent("teacher.assigned", event);
+        } catch (Exception e) {
+            log.error("Erro ao publicar evento no Kafka, mas a atribuição foi salva: {}", e.getMessage(), e);
+        }
         
         // Log de auditoria
-        logAuditEvent("TEACHER_ASSIGNED", savedAssignment.getId(), 
-                "Professor atribuído: " + teacher.getName() + " à turma " + classGroupId);
+        try {
+            logAuditEvent("TEACHER_ASSIGNED", savedAssignment.getId(), 
+                    "Professor atribuído: " + teacher.getName() + " à turma " + classGroupId);
+        } catch (Exception e) {
+            log.error("Erro ao registrar log de auditoria: {}", e.getMessage(), e);
+        }
         
         log.info("Professor atribuído com sucesso: {}", savedAssignment.getId());
         return savedAssignment;
@@ -315,19 +328,29 @@ public class TeacherManagementService {
         assignment.setNotificationSent(true);
         assignmentRepository.save(assignment);
         
-        // Publicar evento no Kafka
-        Map<String, Object> eventData = new HashMap<>();
-        eventData.put("assignment", assignment);
-        DistriSchoolEvent event = DistriSchoolEvent.create(
-                "assignment.notification.sent", 
-                "teacher-management-service", 
-                eventData
-        );
-        eventProducer.sendEvent("assignment.notification.sent", event);
+        // Publicar evento no Kafka - usar Map para evitar problemas de serialização com entidade JPA
+        try {
+            Map<String, Object> eventData = new HashMap<>();
+            Map<String, Object> assignmentData = convertAssignmentToMap(assignment);
+            eventData.put("assignment", assignmentData);
+            DistriSchoolEvent event = DistriSchoolEvent.create(
+                    "assignment.notification.sent", 
+                    "teacher-management-service", 
+                    eventData
+            );
+            eventProducer.sendEvent("assignment.notification.sent", event);
+        } catch (Exception e) {
+            log.error("Erro ao publicar evento de notificação no Kafka: {}", e.getMessage(), e);
+            // Não relançar a exceção para não falhar a operação principal
+        }
         
         // Log de auditoria
-        logAuditEvent("ASSIGNMENT_NOTIFICATION_SENT", assignment.getId(), 
-                "Notificação de atribuição enviada para professor: " + assignment.getTeacher().getName());
+        try {
+            logAuditEvent("ASSIGNMENT_NOTIFICATION_SENT", assignment.getId(), 
+                    "Notificação de atribuição enviada para professor: " + assignment.getTeacher().getName());
+        } catch (Exception e) {
+            log.error("Erro ao registrar log de auditoria: {}", e.getMessage(), e);
+        }
     }
     
     // ========== LOGS DE AUDITORIA ==========
@@ -517,5 +540,27 @@ public class TeacherManagementService {
         if (score >= 3.5) return PerformanceReport.OverallRating.SATISFACTORY;
         if (score >= 3.0) return PerformanceReport.OverallRating.NEEDS_IMPROVEMENT;
         return PerformanceReport.OverallRating.POOR;
+    }
+    
+    /**
+     * Converte TeacherAssignment para Map para evitar problemas de serialização com entidade JPA
+     */
+    private Map<String, Object> convertAssignmentToMap(TeacherAssignment assignment) {
+        Map<String, Object> assignmentMap = new HashMap<>();
+        assignmentMap.put("id", assignment.getId());
+        assignmentMap.put("teacherId", assignment.getTeacher() != null ? assignment.getTeacher().getId() : null);
+        assignmentMap.put("teacherName", assignment.getTeacher() != null ? assignment.getTeacher().getName() : null);
+        assignmentMap.put("subjectId", assignment.getSubject() != null ? assignment.getSubject().getId() : null);
+        assignmentMap.put("subjectName", assignment.getSubject() != null ? assignment.getSubject().getName() : null);
+        assignmentMap.put("classGroupId", assignment.getClassGroup() != null ? assignment.getClassGroup().getId() : null);
+        assignmentMap.put("classGroupName", assignment.getClassGroup() != null ? assignment.getClassGroup().getName() : null);
+        assignmentMap.put("assignmentDate", assignment.getAssignmentDate());
+        assignmentMap.put("startDate", assignment.getStartDate());
+        assignmentMap.put("endDate", assignment.getEndDate());
+        assignmentMap.put("workloadHours", assignment.getWorkloadHours());
+        assignmentMap.put("status", assignment.getStatus() != null ? assignment.getStatus().name() : null);
+        assignmentMap.put("notificationSent", assignment.getNotificationSent());
+        assignmentMap.put("notes", assignment.getNotes());
+        return assignmentMap;
     }
 }

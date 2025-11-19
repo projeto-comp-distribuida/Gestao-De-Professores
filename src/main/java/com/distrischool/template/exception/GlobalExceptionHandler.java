@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -89,6 +90,25 @@ public class GlobalExceptionHandler {
         details.put("value", ex.getValue());
 
         log.warn("TypeMismatch em {}: {}", request.getRequestURI(), msg);
+
+        ApiResponse<Map<String, Object>> body = ApiResponse.error(details, msg);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleMissingParameter(
+            MissingServletRequestParameterException ex, HttpServletRequest request) {
+
+        String msg = String.format("Parâmetro obrigatório '%s' do tipo %s não foi fornecido.",
+                ex.getParameterName(), ex.getParameterType());
+
+        Map<String, Object> details = new HashMap<>();
+        details.put("error", "MissingParameter");
+        details.put("path", request.getRequestURI());
+        details.put("parameter", ex.getParameterName());
+        details.put("parameterType", ex.getParameterType());
+
+        log.warn("Parâmetro obrigatório ausente em {}: {}", request.getRequestURI(), msg);
 
         ApiResponse<Map<String, Object>> body = ApiResponse.error(details, msg);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);

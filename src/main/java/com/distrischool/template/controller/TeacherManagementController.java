@@ -2,7 +2,7 @@ package com.distrischool.template.controller;
 
 import com.distrischool.template.dto.ApiResponse;
 import com.distrischool.template.dto.TeacherDTO;
-import com.distrischool.template.entity.Teacher;
+import com.distrischool.template.dto.TeacherAssignmentRequestDTO;
 import com.distrischool.template.entity.TeacherAssignment;
 import com.distrischool.template.entity.Schedule;
 import com.distrischool.template.entity.PerformanceReport;
@@ -54,24 +54,26 @@ public class TeacherManagementController {
             @RequestHeader(value = "Authorization", required = false) String authorization,
             @AuthenticationPrincipal Jwt jwt) {
         
-        String effectiveUserId = userId != null ? userId : (jwt != null ? jwt.getSubject() : null);
-        
-        if (effectiveUserId == null) {
+        if (jwt == null) {
             return ResponseEntity
                     .status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.error("Usuário não autenticado"));
         }
-
-        // Verifica se o usuário tem role/permissão ADMIN via auth service
-        boolean isAdmin = teacherService.isAdmin(effectiveUserId);
+        
+        String effectiveUserId = userId != null ? userId : jwt.getSubject();
+        
+        // Verifica se o usuário tem role ADMIN diretamente do token JWT
+        boolean isAdmin = teacherService.isAdmin(jwt);
         if (!isAdmin) {
-            log.warn("Tentativa de criar professor sem permissão ADMIN por usuário: {}", effectiveUserId);
+            log.warn("Tentativa de criar professor sem permissão ADMIN por usuário: {} (subject: {})", 
+                    effectiveUserId, jwt.getSubject());
             return ResponseEntity
                     .status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error("Apenas usuários com role ADMIN podem criar professores"));
         }
 
-        log.info("POST /api/v1/teacher-management/teachers - Criando novo professor (by {})", effectiveUserId);
+        log.info("POST /api/v1/teacher-management/teachers - Criando novo professor (by {} - subject: {})", 
+                effectiveUserId, jwt.getSubject());
         TeacherDTO createdTeacher = teacherManagementService.createTeacher(teacherDTO, authorization);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(createdTeacher, "Professor criado com sucesso"));
@@ -97,16 +99,17 @@ public class TeacherManagementController {
     
     @PostMapping("/assignments")
     public ResponseEntity<ApiResponse<TeacherAssignment>> assignTeacherToClass(
-            @RequestParam Long teacherId,
-            @RequestParam Long subjectId,
-            @RequestParam Long classGroupId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam Integer workloadHours) {
-        log.info("POST /api/v1/teacher-management/assignments - Atribuindo professor {} à turma {}", teacherId, classGroupId);
+            @Valid @RequestBody TeacherAssignmentRequestDTO requestDTO) {
+        log.info("POST /api/v1/teacher-management/assignments - Atribuindo professor {} à turma {}", 
+                requestDTO.getTeacherId(), requestDTO.getClassGroupId());
         
         TeacherAssignment assignment = teacherManagementService.assignTeacherToClass(
-                teacherId, subjectId, classGroupId, startDate, endDate, workloadHours);
+                requestDTO.getTeacherId(), 
+                requestDTO.getSubjectId(), 
+                requestDTO.getClassGroupId(), 
+                requestDTO.getStartDate(), 
+                requestDTO.getEndDate(), 
+                requestDTO.getWorkloadHours());
         
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(assignment, "Professor atribuído com sucesso"));
