@@ -33,4 +33,9 @@ public interface TeacherRepository extends JpaRepository<Teacher, Long> {
      */
     @Query("SELECT t FROM Teacher t WHERE t.id IN :ids AND t.deletedAt IS NULL")
     List<Teacher> findByIdsNotDeleted(@Param("ids") List<Long> ids);
+    
+    /**
+     * Busca professor por Auth0 ID
+     */
+    Optional<Teacher> findByAuth0Id(String auth0Id);
 }

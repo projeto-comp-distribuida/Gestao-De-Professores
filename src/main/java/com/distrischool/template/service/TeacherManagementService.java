@@ -183,8 +183,27 @@ public class TeacherManagementService {
                                                  LocalDate startDate, LocalDate endDate, Integer workloadHours) {
         log.info("Atribuindo professor {} à disciplina {} na turma {}", teacherId, subjectId, classGroupId);
         
-        Teacher teacher = teacherRepository.findById(teacherId)
-                .orElseThrow(() -> new ResourceNotFoundException("Professor não encontrado"));
+        // Valida se o usuário existe no serviço de autenticação e tem role TEACHER
+        // O teacherId recebido do frontend é na verdade o userId do serviço de auth
+        validateUserIsTeacher(teacherId);
+        
+        // Busca o professor pelo auth0Id (que está vinculado ao userId do auth)
+        // Primeiro, busca o usuário no auth para obter o auth0Id
+        ApiResponse<com.distrischool.template.dto.auth.UserResponse> userResponse = 
+                authServiceClient.getUserById(teacherId);
+        
+        if (userResponse == null || !Boolean.TRUE.equals(userResponse.getSuccess()) || userResponse.getData() == null) {
+            throw new ResourceNotFoundException("Usuário não encontrado no serviço de autenticação");
+        }
+        
+        String auth0Id = userResponse.getData().getAuth0Id();
+        if (auth0Id == null || auth0Id.isBlank()) {
+            throw new ResourceNotFoundException("Usuário não possui Auth0 ID vinculado");
+        }
+        
+        // Busca o professor pelo auth0Id
+        Teacher teacher = teacherRepository.findByAuth0Id(auth0Id)
+                .orElseThrow(() -> new ResourceNotFoundException("Professor não encontrado para o usuário informado"));
         
         // Buscar Subject e ClassGroup
         Subject subject = subjectRepository.findById(subjectId)
@@ -245,8 +264,25 @@ public class TeacherManagementService {
     public List<Schedule> getTeacherSchedule(Long teacherId, String academicYear) {
         log.info("Buscando horários do professor {} para o ano {}", teacherId, academicYear);
         
-        Teacher teacher = teacherRepository.findById(teacherId)
-                .orElseThrow(() -> new ResourceNotFoundException("Professor não encontrado"));
+        // Valida se o usuário existe no serviço de autenticação e tem role TEACHER
+        // O teacherId recebido do frontend é na verdade o userId do serviço de auth
+        validateUserIsTeacher(teacherId);
+        
+        // Busca o professor pelo auth0Id (que está vinculado ao userId do auth)
+        ApiResponse<com.distrischool.template.dto.auth.UserResponse> userResponse = 
+                authServiceClient.getUserById(teacherId);
+        
+        if (userResponse == null || !Boolean.TRUE.equals(userResponse.getSuccess()) || userResponse.getData() == null) {
+            throw new ResourceNotFoundException("Usuário não encontrado no serviço de autenticação");
+        }
+        
+        String auth0Id = userResponse.getData().getAuth0Id();
+        if (auth0Id == null || auth0Id.isBlank()) {
+            throw new ResourceNotFoundException("Usuário não possui Auth0 ID vinculado");
+        }
+        
+        Teacher teacher = teacherRepository.findByAuth0Id(auth0Id)
+                .orElseThrow(() -> new ResourceNotFoundException("Professor não encontrado para o usuário informado"));
         
         return scheduleRepository.findByTeacherAndAcademicYear(teacher, academicYear);
     }
@@ -265,8 +301,25 @@ public class TeacherManagementService {
         log.info("Gerando relatório de desempenho para professor {} no período {} - {}", 
                 teacherId, startDate, endDate);
         
-        Teacher teacher = teacherRepository.findById(teacherId)
-                .orElseThrow(() -> new ResourceNotFoundException("Professor não encontrado"));
+        // Valida se o usuário existe no serviço de autenticação e tem role TEACHER
+        // O teacherId recebido do frontend é na verdade o userId do serviço de auth
+        validateUserIsTeacher(teacherId);
+        
+        // Busca o professor pelo auth0Id (que está vinculado ao userId do auth)
+        ApiResponse<com.distrischool.template.dto.auth.UserResponse> userResponse = 
+                authServiceClient.getUserById(teacherId);
+        
+        if (userResponse == null || !Boolean.TRUE.equals(userResponse.getSuccess()) || userResponse.getData() == null) {
+            throw new ResourceNotFoundException("Usuário não encontrado no serviço de autenticação");
+        }
+        
+        String auth0Id = userResponse.getData().getAuth0Id();
+        if (auth0Id == null || auth0Id.isBlank()) {
+            throw new ResourceNotFoundException("Usuário não possui Auth0 ID vinculado");
+        }
+        
+        Teacher teacher = teacherRepository.findByAuth0Id(auth0Id)
+                .orElseThrow(() -> new ResourceNotFoundException("Professor não encontrado para o usuário informado"));
         
         // Buscar dados do período
         List<TeacherAssignment> assignments = assignmentRepository.findByTeacher(teacher);
@@ -374,6 +427,54 @@ public class TeacherManagementService {
     }
     
     // ========== MÉTODOS AUXILIARES ==========
+    
+    /**
+     * Valida se o usuário existe no serviço de autenticação e tem a role TEACHER
+     * 
+     * @param userId ID do usuário no serviço de autenticação
+     * @throws BusinessException se o usuário não existe ou não tem a role TEACHER
+     */
+    private void validateUserIsTeacher(Long userId) {
+        log.info("Validando se usuário {} existe e tem role TEACHER", userId);
+        
+        try {
+            // Busca o usuário no serviço de autenticação
+            ApiResponse<com.distrischool.template.dto.auth.UserResponse> userResponse = authServiceClient.getUserById(userId);
+            
+            if (userResponse == null || !Boolean.TRUE.equals(userResponse.getSuccess())) {
+                log.warn("Usuário não encontrado no serviço de autenticação - ID: {}", userId);
+                throw new BusinessException("Usuário não encontrado com ID: " + userId);
+            }
+            
+            com.distrischool.template.dto.auth.UserResponse user = userResponse.getData();
+            if (user == null) {
+                log.warn("Dados do usuário não retornados - ID: {}", userId);
+                throw new BusinessException("Usuário não encontrado com ID: " + userId);
+            }
+            
+            // Verifica se o usuário tem a role TEACHER
+            ApiResponse<Boolean> roleResponse = authServiceClient.hasRole(userId, "TEACHER");
+            
+            if (roleResponse == null || !Boolean.TRUE.equals(roleResponse.getSuccess())) {
+                log.warn("Erro ao verificar role do usuário - ID: {}", userId);
+                throw new BusinessException("Erro ao verificar role do usuário. Tente novamente mais tarde.");
+            }
+            
+            Boolean hasTeacherRole = roleResponse.getData();
+            if (hasTeacherRole == null || !hasTeacherRole) {
+                log.warn("Usuário {} não tem a role TEACHER", userId);
+                throw new BusinessException("Usuário com ID " + userId + " não possui a role TEACHER");
+            }
+            
+            log.info("Usuário {} validado com sucesso - possui role TEACHER", userId);
+            
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Erro ao validar usuário no serviço de autenticação - ID: {}, Erro: {}", userId, e.getMessage(), e);
+            throw new BusinessException("Erro ao validar usuário no serviço de autenticação: " + e.getMessage());
+        }
+    }
     
     /**
      * Cria um usuário no serviço de autenticação para o professor

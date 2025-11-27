@@ -194,6 +194,54 @@ public class TeacherService {
     }
     
     /**
+     * Valida se o usuário existe no serviço de autenticação e tem a role TEACHER
+     * 
+     * @param userId ID do usuário no serviço de autenticação
+     * @throws BusinessException se o usuário não existe ou não tem a role TEACHER
+     */
+    public void validateUserIsTeacher(Long userId) {
+        log.info("Validando se usuário {} existe e tem role TEACHER", userId);
+        
+        try {
+            // Busca o usuário no serviço de autenticação
+            ApiResponse<UserResponse> userResponse = authServiceClient.getUserById(userId);
+            
+            if (userResponse == null || !Boolean.TRUE.equals(userResponse.getSuccess())) {
+                log.warn("Usuário não encontrado no serviço de autenticação - ID: {}", userId);
+                throw new BusinessException("Usuário não encontrado com ID: " + userId);
+            }
+            
+            UserResponse user = userResponse.getData();
+            if (user == null) {
+                log.warn("Dados do usuário não retornados - ID: {}", userId);
+                throw new BusinessException("Usuário não encontrado com ID: " + userId);
+            }
+            
+            // Verifica se o usuário tem a role TEACHER
+            ApiResponse<Boolean> roleResponse = authServiceClient.hasRole(userId, "TEACHER");
+            
+            if (roleResponse == null || !Boolean.TRUE.equals(roleResponse.getSuccess())) {
+                log.warn("Erro ao verificar role do usuário - ID: {}", userId);
+                throw new BusinessException("Erro ao verificar role do usuário. Tente novamente mais tarde.");
+            }
+            
+            Boolean hasTeacherRole = roleResponse.getData();
+            if (hasTeacherRole == null || !hasTeacherRole) {
+                log.warn("Usuário {} não tem a role TEACHER", userId);
+                throw new BusinessException("Usuário com ID " + userId + " não possui a role TEACHER");
+            }
+            
+            log.info("Usuário {} validado com sucesso - possui role TEACHER", userId);
+            
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Erro ao validar usuário no serviço de autenticação - ID: {}, Erro: {}", userId, e.getMessage(), e);
+            throw new BusinessException("Erro ao validar usuário no serviço de autenticação: " + e.getMessage());
+        }
+    }
+    
+    /**
      * Busca múltiplos professores por IDs (validação em lote)
      * Retorna uma lista de Maps com os dados dos professores
      */

@@ -39,6 +39,13 @@ public interface AuthServiceClient {
      */
     @GetMapping("/api/v1/users/{userId}/has-role")
     ApiResponse<Boolean> hasRole(@PathVariable Long userId, @RequestParam String role);
+
+    /**
+     * Busca um usuário por ID
+     * Retorna os dados do usuário se encontrado
+     */
+    @GetMapping("/api/v1/users/{userId}")
+    ApiResponse<UserResponse> getUserById(@PathVariable Long userId);
 }
 
 
