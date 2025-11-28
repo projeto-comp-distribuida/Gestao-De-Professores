@@ -118,4 +118,29 @@ public class TeacherController {
         log.info("Encontrados {} professores de {} IDs solicitados", teachers.size(), teacherIds.size());
         return ResponseEntity.ok(ApiResponse.success(teachers, "Busca em lote concluída com sucesso"));
     }
+
+    /**
+     * Busca professor por Auth0 ID
+     * GET /api/v1/teachers/by-auth0/{auth0Id}
+     * 
+     * Este endpoint é usado pelo serviço de autenticação para obter o ID do professor
+     * associado a um Auth0 ID. Retorna apenas o ID do professor ou 404 se não encontrado.
+     * 
+     * @param auth0Id Auth0 ID do usuário
+     * @return ID do professor ou 404 se não encontrado
+     */
+    @GetMapping("/by-auth0/{auth0Id}")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> getTeacherIdByAuth0Id(@PathVariable String auth0Id) {
+        log.info("Requisição para buscar professor por Auth0 ID: {}", auth0Id);
+        
+        Long teacherId = teacherService.getTeacherIdByAuth0Id(auth0Id);
+        
+        if (teacherId == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Professor não encontrado para o Auth0 ID fornecido"));
+        }
+        
+        Map<String, Long> response = Map.of("id", teacherId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Professor encontrado"));
+    }
 }

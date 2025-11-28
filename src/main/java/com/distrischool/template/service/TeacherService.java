@@ -59,6 +59,19 @@ public class TeacherService {
                 .orElseThrow(() -> new ResourceNotFoundException("Professor não encontrado com matrícula: " + employeeId));
         return new TeacherDTO(teacher);
     }
+
+    /**
+     * Busca professor por Auth0 ID
+     * Retorna apenas o ID do professor se encontrado, null caso contrário
+     */
+    @Transactional(readOnly = true)
+    public Long getTeacherIdByAuth0Id(String auth0Id) {
+        log.debug("Buscando professor por Auth0 ID: {}", auth0Id);
+        return teacherRepository.findByAuth0Id(auth0Id)
+                .filter(t -> t.getDeletedAt() == null)
+                .map(Teacher::getId)
+                .orElse(null);
+    }
     
     public TeacherDTO create(TeacherDTO teacherDTO, String authorizationHeader) {
         log.info("Criando novo professor: {}", teacherDTO.getName());
